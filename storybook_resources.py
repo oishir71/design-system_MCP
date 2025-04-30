@@ -1,18 +1,21 @@
+import os
 import logging
 import asyncio
 import httpx
 from dataclasses import dataclass
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("softreef_resources")
 
+SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL=os.getenv("SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL")
 @dataclass(frozen=True)
 class Resource:
     url: str
     name: str
     description: str
-
-SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL="http://sb-aiso-pages.s3-website-ap-northeast-1.amazonaws.com/softreef/main/storybook/features/all-in-one-storybook/storybook-static/?path=/docs/@softreef/design-system_softreef-design-system"
 
 uri_2_resource: dict[str, Resource] = {
     "markdown://softreef/design-system/overview": Resource(

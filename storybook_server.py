@@ -1,5 +1,3 @@
-import os
-import sys
 import json
 import logging
 from collections.abc import Sequence
@@ -7,11 +5,11 @@ from typing import Any
 import requests
 import httpx
 from dotenv import load_dotenv
+from pydantic import AnyUrl
 from mcp.server import Server
 from mcp.types import Prompt, GetPromptResult, PromptMessage, Resource, Tool, TextContent, ImageContent, EmbeddedResource
-from pydantic import AnyUrl
 
-from async_storybook import main as fetcher
+from storybook_async_fetcher import main as fetcher
 from storybook_resources import uri_2_resource
 from storybook_prompts import prompts
 
@@ -19,11 +17,6 @@ load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("softreef")
-
-SOFTREEF_BASE_URL=os.getenv("SOFTREEF_BASE_URL")
-SOFTREEF_TOKEN=os.getenv("SOFTREEF_TOKEN")
-SOFTREEF_PROJECT_ID=os.getenv("SOFTREEF_PROJECT_ID")
-SOFTREEF_DATASET_ID=os.getenv("SOFTREEF_DATASET_ID")
 
 async def get_storybook_resource(url: str):
     markdown = await fetcher(url)
