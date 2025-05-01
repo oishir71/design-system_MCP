@@ -18,7 +18,7 @@ from mcp.types import (
     EmbeddedResource,
 )
 
-from storybook_async_fetcher import main as fetcher
+from storybook_async_fetcher import markdown_format_text
 from storybook_resources import uri_2_resource
 from storybook_prompts import prompts
 
@@ -29,7 +29,7 @@ logger = logging.getLogger("softreef")
 
 
 async def get_storybook_resource(url: str):
-    markdown = await fetcher(url)
+    markdown = await markdown_format_text(url)
     return markdown
 
 
