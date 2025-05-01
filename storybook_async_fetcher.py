@@ -12,7 +12,7 @@ async def markdown_format_text(url: str, locator_id: str = "storybook-docs") -> 
     async with async_playwright() as p:
         try:
             browser = await p.chromium.launch(
-                headless=False,
+                headless=True,
                 executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             )
 
