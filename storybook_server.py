@@ -7,7 +7,16 @@ import httpx
 from dotenv import load_dotenv
 from pydantic import AnyUrl
 from mcp.server import Server
-from mcp.types import Prompt, GetPromptResult, PromptMessage, Resource, Tool, TextContent, ImageContent, EmbeddedResource
+from mcp.types import (
+    Prompt,
+    GetPromptResult,
+    PromptMessage,
+    Resource,
+    Tool,
+    TextContent,
+    ImageContent,
+    EmbeddedResource,
+)
 
 from storybook_async_fetcher import main as fetcher
 from storybook_resources import uri_2_resource
@@ -18,18 +27,24 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("softreef")
 
+
 async def get_storybook_resource(url: str):
     markdown = await fetcher(url)
     return markdown
 
+
 app = Server("softreef")
+
 
 @app.list_prompts()
 async def list_prompts() -> list[Prompt]:
     return prompts
 
+
 @app.get_prompt()
-async def get_prompt(name: str, arguments: dict[str, str] | None = None) -> GetPromptResult:
+async def get_prompt(
+    name: str, arguments: dict[str, str] | None = None
+) -> GetPromptResult:
     if not name in [prompt.name for prompt in prompts]:
         raise ValueError(f"Prompt not found: {name}")
 
@@ -50,7 +65,7 @@ async def get_prompt(name: str, arguments: dict[str, str] | None = None) -> GetP
                                 f"Softreefのdesign-systemの{component}コンポーネントについて知りたいです。\n"
                                 f"以下の内容を参照して教えてください。\n\n{response}"
                             ),
-                        )
+                        ),
                     )
                 ]
             )
@@ -67,8 +82,8 @@ async def get_prompt(name: str, arguments: dict[str, str] | None = None) -> GetP
                                 text=(
                                     f"Softreefの{category}について知りたいです。\n"
                                     f"以下の内容を参照して教えてください。\n\n{response}"
-                                )
-                            )
+                                ),
+                            ),
                         )
                     ]
                 )
@@ -79,15 +94,14 @@ async def get_prompt(name: str, arguments: dict[str, str] | None = None) -> GetP
                             role="user",
                             content=TextContent(
                                 type="text",
-                                text=(
-                                    f"Softreefの{category}について教えてください。"
-                                )
-                            )
+                                text=(f"Softreefの{category}について教えてください。"),
+                            ),
                         )
                     ]
                 )
 
     raise ValueError(f"Prompt implementation not found: {name}")
+
 
 @app.list_resources()
 async def list_resources() -> list[Resource]:
@@ -96,15 +110,17 @@ async def list_resources() -> list[Resource]:
             uri=key,
             name=value.name,
             description=value.description,
-            mimeType="text/markdown"
-        ) for key, value in uri_2_resource.items()
+            mimeType="text/markdown",
+        )
+        for key, value in uri_2_resource.items()
     ]
+
 
 @app.read_resource()
 async def read_resource(uri: AnyUrl) -> str:
     uri = str(uri)
     if not uri in uri_2_resource:
-        logger.error(f'URI: {uri} was not defined.')
+        logger.error(f"URI: {uri} was not defined.")
         raise RuntimeError(f"Not defined URI was given: {uri}")
 
     try:
@@ -112,6 +128,7 @@ async def read_resource(uri: AnyUrl) -> str:
         return content
     except httpx.HTTPError as e:
         raise RuntimeError(f"Fetch softreef design-system content error: {str(e)}")
+
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
@@ -130,22 +147,61 @@ async def list_tools() -> list[Tool]:
                     "component": {
                         "type": "string",
                         "enum": [
-                            "Accordion", "Autocomplete", "Breadcrumbs", "Button", "ButtonGroup", "CardOverview",
-                            "Card", "CardForGalleryView", "CardList", "BarChart", "AllSelectCheckBox", "CheckBox",
-                            "Chip", "DateTimePicker", "DialogOverview", "ActionDialog", "StepperDialog", "Divider",
-                            "DropdownMenuButton", "EllipsisDropdownMenuButton", "DropZoneOverview", "ImageDropZone",
-                            "GridLayout", "Icon", "List", "Loader", "Logo", "Notification", "PagingOverview",
-                            "FullPaging", "SimplePaging", "RadioButton", "SelectBox", "Slider", "Status", "Stepper",
-                            "SwitchTableAndCardView", "Tab", "Table", "Text", "TextBox", "ToggleOverview",
-                            "ToggleButton", "ToggleSwitch", "Tooltip", "KeyValue",
+                            "Accordion",
+                            "Autocomplete",
+                            "Breadcrumbs",
+                            "Button",
+                            "ButtonGroup",
+                            "CardOverview",
+                            "Card",
+                            "CardForGalleryView",
+                            "CardList",
+                            "BarChart",
+                            "AllSelectCheckBox",
+                            "CheckBox",
+                            "Chip",
+                            "DateTimePicker",
+                            "DialogOverview",
+                            "ActionDialog",
+                            "StepperDialog",
+                            "Divider",
+                            "DropdownMenuButton",
+                            "EllipsisDropdownMenuButton",
+                            "DropZoneOverview",
+                            "ImageDropZone",
+                            "GridLayout",
+                            "Icon",
+                            "List",
+                            "Loader",
+                            "Logo",
+                            "Notification",
+                            "PagingOverview",
+                            "FullPaging",
+                            "SimplePaging",
+                            "RadioButton",
+                            "SelectBox",
+                            "Slider",
+                            "Status",
+                            "Stepper",
+                            "SwitchTableAndCardView",
+                            "Tab",
+                            "Table",
+                            "Text",
+                            "TextBox",
+                            "ToggleOverview",
+                            "ToggleButton",
+                            "ToggleSwitch",
+                            "Tooltip",
+                            "KeyValue",
                         ],
                         "description": "Name of component",
-                    }
+                    },
                 },
                 "required": ["category"],
-            }
+            },
         ),
     ]
+
 
 async def call_run_aggregation(arguments: Any) -> Sequence[TextContent]:
     if not isinstance(arguments, dict) or "aggregation" not in arguments:
@@ -161,6 +217,7 @@ async def call_run_aggregation(arguments: Any) -> Sequence[TextContent]:
         logger.error(f"{str(e)} was occurred during calling run aggregation")
         raise RuntimeError(f"{str(e)} was occurred during calling run aggregation")
 
+
 async def call_get_storybook_as_markdown_tool(arguments: Any) -> Sequence[TextContent]:
     if not isinstance(arguments, dict) or "category" not in arguments:
         raise ValueError("Required argument 'category' not found")
@@ -169,7 +226,7 @@ async def call_get_storybook_as_markdown_tool(arguments: Any) -> Sequence[TextCo
     category = arguments.get("category")
     component = arguments.get("component", "")
     if category == "component":
-        uri += f'{category}/{component}'
+        uri += f"{category}/{component}"
     else:
         uri += category
 
@@ -178,10 +235,15 @@ async def call_get_storybook_as_markdown_tool(arguments: Any) -> Sequence[TextCo
         return [TextContent(type="text", text=response)]
     except requests.HTTPError as e:
         logger.error(f"{str(e)} was occurred during calling get storybook resource")
-        raise RuntimeError(f"{str(e)} was occurred during calling get storybook resource")
+        raise RuntimeError(
+            f"{str(e)} was occurred during calling get storybook resource"
+        )
+
 
 @app.call_tool()
-async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+async def call_tool(
+    name: str, arguments: Any
+) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
     if name == "run_aggregation":
         return await call_run_aggregation(arguments)
     elif name == "get_storybook_as_markdown":
@@ -189,15 +251,15 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageCo
     else:
         raise ValueError(f"Unknown tool: {name}")
 
+
 async def main():
     from mcp.server.stdio import stdio_server
+
     async with stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            app.create_initialization_options()
-        )
+        await app.run(read_stream, write_stream, app.create_initialization_options())
+
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

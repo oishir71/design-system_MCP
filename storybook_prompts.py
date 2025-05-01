@@ -14,7 +14,7 @@ prompts: list[Prompt] = [
                 name="component",
                 description="type of component",
                 required=False,
-            )
-        ]
+            ),
+        ],
     )
 ]

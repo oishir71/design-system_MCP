@@ -10,12 +10,17 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("softreef_resources")
 
-SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL=os.getenv("SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL")
+SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL = os.getenv(
+    "SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL"
+)
+
+
 @dataclass(frozen=True)
 class Resource:
     url: str
     name: str
     description: str
+
 
 uri_2_resource: dict[str, Resource] = {
     "markdown://softreef/design-system/overview": Resource(
@@ -270,6 +275,7 @@ uri_2_resource: dict[str, Resource] = {
     ),
 }
 
+
 async def check_reachable_url(url: str) -> bool:
     try:
         async with httpx.AsyncClient() as client:
@@ -279,9 +285,11 @@ async def check_reachable_url(url: str) -> bool:
         logger.error(f'"{str(e)}" was occurred when trying to access "{url}"')
         return False
 
+
 async def main():
     for uri in uri_2_resource:
         _ = await check_reachable_url(url=uri_2_resource[uri].url)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
