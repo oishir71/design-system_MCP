@@ -301,27 +301,27 @@ uri_2_resource: dict[str, Resource] = {
         description="Key-Value形式のデータを表示するためのコンポーネント",
     ),
     "markdown://softreef/design-system/design-pattern/ContentAreaLayout": Resource(
-        url=f"",
+        url=f"{SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL}-デザインパターン-コンテンツエリア--docs",
         name="Softreef ContentArea design-pattern",
         description="ヘッダーやナビゲーション、パンくずリスト以外の案件特化画面で遵守されるべきデザインルール",
     ),
     "markdown://softreef/design-system/design-pattern/BasicScreenLayout": Resource(
-        url=f"",
+        url=f"{SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL}-デザインパターン-基本画面構成-overview--docs",
         name="Softreef BasicScreenLayout design-pattern",
         description="ヘッダーやナビゲーション、パンくずリストなどの全画面で共通で利用される画面要素のデザインルール",
     ),
     "markdown://softreef/design-system/design-pattern/DeleteConfirmationDialog": Resource(
-        url=f"",
+        url=f"{SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL}-デザインパターン-汎用削除確認画面-overview--docs",
         name="Softreef DeleteConfirmationDialog design-pattern",
         description="何かしらのオブジェクトを削除する際に汎用的に使用される画面のデザインルール",
     ),
     "markdown://softreef/design-system/design-pattern/DetailPanelLayout": Resource(
-        url=f"",
+        url=f"{SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL}-デザインパターン-汎用詳細画面--docs",
         name="Softreef DetailPanelLayout design-pattern",
         description="何かしらのオブジェクトの詳細を確認する際に汎用的に使用される画面のデザインルール",
     ),
     "markdown://softreef/design-system/design-pattern/FormSubmissionPanelLayout": Resource(
-        url=f"",
+        url=f"{SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL}-デザインパターン-汎用入力画面--docs",
         name="Softreef FormSubmissionPanelLayout design-pattern",
         description="ユーザーが情報を新規登録したり、編集するための画面として使用される画面のデザインルール",
     ),
@@ -341,6 +341,12 @@ async def check_reachable_url(url: str) -> bool:
 async def main():
     for uri in uri_2_resource:
         _ = await check_reachable_url(url=uri_2_resource[uri].url)
+
+
+def utf8_decode(url: str) -> str:
+    from urllib.parse import unquote
+
+    return unquote(url)
 
 
 if __name__ == "__main__":

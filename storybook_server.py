@@ -134,16 +134,31 @@ async def read_resource(uri: AnyUrl) -> str:
 async def list_tools() -> list[Tool]:
     return [
         Tool(
-            name="get_storybook_as_markdown",
-            description="Get description of Softreef design-system",
+            name="get_softreef_overview_description",
+            description="Get a description of either overview, environment or resource about Softreef design-system",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "category": {
                         "type": "string",
-                        "enum": ["overview", "environment", "resource", "component"],
-                        "description": "type of major category",
-                    },
+                        "enum": ["overview", "environment", "resource"],
+                        "description": "Name of category",
+                    }
+                },
+                "required": ["category"],
+            },
+        ),
+        Tool(
+            name="get_available_softreef_component_description_list",
+            description="Get a list of available softreef component descriptions",
+            inputSchema={"type": "object"},
+        ),
+        Tool(
+            name="get_softreef_component_description",
+            description="Get one of the descriptions in a series of descriptions about Softreef design-system component",
+            inputSchema={
+                "type": "object",
+                "properties": {
                     "component": {
                         "type": "string",
                         "enum": [
@@ -197,7 +212,33 @@ async def list_tools() -> list[Tool]:
                         "description": "Name of component",
                     },
                 },
-                "required": ["category"],
+                "required": ["component"],
+            },
+        ),
+        Tool(
+            name="get_available_softreef_design_pattern_description_list",
+            description="Get a list of available softreef design-pattern descriptions",
+            inputSchema={"type": "object"},
+        ),
+        Tool(
+            name="get_softreef_design_pattern_description",
+            description="Get one of the description in a series of descriptions about Softreef design-pattern",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "pattern": {
+                        "type": "string",
+                        "enum": [
+                            "ContentAreaLayout",
+                            "BasicScreenLayout",
+                            "DeleteConfirmationDialog",
+                            "DetailPanelLayout",
+                            "FormSubmissionPanelLayout",
+                        ],
+                        "description": "Name of design-pattern",
+                    },
+                },
+                "required": ["pattern"],
             },
         ),
     ]
@@ -218,25 +259,96 @@ async def call_run_aggregation(arguments: Any) -> Sequence[TextContent]:
         raise RuntimeError(f"{str(e)} was occurred during calling run aggregation")
 
 
-async def call_get_storybook_as_markdown_tool(arguments: Any) -> Sequence[TextContent]:
-    if not isinstance(arguments, dict) or "category" not in arguments:
+async def call_get_softreef_overview_description(
+    arguments: Any,
+) -> Sequence[TextContent]:
+    if not isinstance(arguments, dict) or not "category" in arguments:
         raise ValueError("Required argument 'category' not found")
 
-    uri = "markdown://softreef/design-system/"
-    category = arguments.get("category")
-    component = arguments.get("component", "")
-    if category == "component":
-        uri += f"{category}/{component}"
-    else:
-        uri += category
-
+    uri = f"markdown://softreef/design-system/{arguments.get("category")}"
     try:
-        response = await get_storybook_resource(url=uri_2_resource[uri].url)
+        response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
         return [TextContent(type="text", text=response)]
     except requests.HTTPError as e:
-        logger.error(f"{str(e)} was occurred during calling get storybook resource")
+        logger.error(
+            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("pattern")}' description"
+        )
         raise RuntimeError(
-            f"{str(e)} was occurred during calling get storybook resource"
+            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("pattern")}' description"
+        )
+
+
+async def call_get_available_softreef_component_description_list() -> (
+    Sequence[TextContent]
+):
+    tools = await list_tools()
+    get_softreef_component_description_tool = None
+    for tool in tools:
+        if tool.name == "get_softreef_component_description":
+            get_softreef_component_description_tool = tool
+
+    components = (
+        get_softreef_component_description_tool.inputSchema.get("properties")
+        .get("component")
+        .get("enum")
+    )
+    response = f"{str(components)}"
+    return [TextContent(type="text", text=response)]
+
+
+async def call_get_softreef_component_description(
+    arguments: Any,
+) -> Sequence[TextContent]:
+    if not isinstance(arguments, dict) or not "component" in arguments:
+        raise ValueError("Required argument 'component' not found")
+
+    uri = f"markdown://softreef/design-system/component/{arguments.get("component")}"
+    try:
+        response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
+        return [TextContent(type="text", text=response)]
+    except requests.HTTPError as e:
+        logger.error(
+            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("component")}' component description"
+        )
+        raise RuntimeError(
+            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("component")}' component description"
+        )
+
+
+async def call_get_available_softreef_design_pattern_description_list() -> (
+    Sequence[TextContent]
+):
+    tools = await list_tools()
+    get_softreef_design_pattern_description_tool = None
+    for tool in tools:
+        if tool.name == "get_softreef_design_pattern_description":
+            get_softreef_design_pattern_description_tool = tool
+
+    patterns = (
+        get_softreef_design_pattern_description_tool.inputSchema.get("properties")
+        .get("pattern")
+        .get("enum")
+    )
+    response = f"{str(patterns)}"
+    return [TextContent(type="text", text=response)]
+
+
+async def call_get_softreef_design_pattern_description(
+    arguments: Any,
+) -> Sequence[TextContent]:
+    if not isinstance(arguments, dict) or not "pattern" in arguments:
+        raise ValueError("Required argument 'pattern' not found")
+
+    uri = f"markdown://softreef/design-system/design-pattern/{arguments.get("pattern")}"
+    try:
+        response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
+        return [TextContent(type="text", text=response)]
+    except requests.HTTPError as e:
+        logger.error(
+            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("pattern")}' design-pattern description"
+        )
+        raise RuntimeError(
+            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("pattern")}' design-pattern description"
         )
 
 
@@ -246,8 +358,16 @@ async def call_tool(
 ) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
     if name == "run_aggregation":
         return await call_run_aggregation(arguments)
-    elif name == "get_storybook_as_markdown":
-        return await call_get_storybook_as_markdown_tool(arguments)
+    elif name == "get_softreef_overview_description":
+        return await call_get_softreef_overview_description(arguments)
+    elif name == "get_available_softreef_component_description_list":
+        return await call_get_available_softreef_component_description_list()
+    elif name == "get_softreef_component_description":
+        return await call_get_softreef_component_description(arguments)
+    elif name == "get_available_softreef_design_pattern_description_list":
+        return await call_get_available_softreef_design_pattern_description_list()
+    elif name == "get_softreef_design_pattern_description":
+        return await call_get_softreef_design_pattern_description(arguments)
     else:
         raise ValueError(f"Unknown tool: {name}")
 
