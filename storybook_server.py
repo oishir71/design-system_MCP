@@ -29,8 +29,13 @@ logger = logging.getLogger("softreef")
 
 
 async def get_storybook_resource(url: str):
-    markdown = await markdown_format_text(url)
-    return markdown
+    try:
+        markdown = await markdown_format_text(url)
+        return markdown
+    except httpx.HTTPError as e:
+        raise RuntimeError(
+            f"{str(e)} was occurred during fetching storybook resource from the url: ({url})"
+        )
 
 
 app = Server("softreef")
@@ -45,62 +50,62 @@ async def list_prompts() -> list[Prompt]:
 async def get_prompt(
     name: str, arguments: dict[str, str] | None = None
 ) -> GetPromptResult:
-    if not name in [prompt.name for prompt in prompts]:
-        raise ValueError(f"Prompt not found: {name}")
-
-    if name == "design-system_storybook":
-        uri = "markdown://softreef/design-system/"
+    if name == "softreef_overview":
         category = arguments.get("category")
-        component = arguments.get("component", "")
-        if category == "component":
-            uri += f"{category}/{component}"
-            response = await get_storybook_resource(url=uri_2_resource[uri].url)
-            return GetPromptResult(
-                messages=[
-                    PromptMessage(
-                        role="user",
-                        content=TextContent(
-                            type="text",
-                            text=(
-                                f"Softreefのdesign-systemの{component}コンポーネントについて知りたいです。\n"
-                                f"以下の内容を参照して教えてください。\n\n{response}"
-                            ),
+        uri = f"markdown://softreef/design-system/{category}"
+        response = await get_storybook_resource(url=uri_2_resource[uri].url)
+        return GetPromptResult(
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"Softreefのdesign-systemの{category}について以下の情報を参照して教えてください。"
+                            f"\n\n{response}"
                         ),
-                    )
-                ]
-            )
-        else:
-            uri += category
-            if uri in uri_2_resource:
-                response = await get_storybook_resource(url=uri_2_resource[uri].url)
-                return GetPromptResult(
-                    messages=[
-                        PromptMessage(
-                            role="user",
-                            content=TextContent(
-                                type="text",
-                                text=(
-                                    f"Softreefの{category}について知りたいです。\n"
-                                    f"以下の内容を参照して教えてください。\n\n{response}"
-                                ),
-                            ),
-                        )
-                    ]
+                    ),
                 )
-            else:
-                return GetPromptResult(
-                    messages=[
-                        PromptMessage(
-                            role="user",
-                            content=TextContent(
-                                type="text",
-                                text=(f"Softreefの{category}について教えてください。"),
-                            ),
-                        )
-                    ]
+            ]
+        )
+    elif name == "softreef_component":
+        component = arguments.get("component")
+        uri = f"markdown://softreef/design-system/component/{component}"
+        response = await get_storybook_resource(url=uri_2_resource[uri].url)
+        return GetPromptResult(
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"Softreefのdesign-systemの{component}コンポーネントについて以下の情報を参照して教えてください。"
+                            f"\n\n{response}"
+                        ),
+                    ),
                 )
-
-    raise ValueError(f"Prompt implementation not found: {name}")
+            ]
+        )
+    elif name == "softreef_design_pattern":
+        pattern = arguments.get("pattern")
+        uri = f"markdown://softreef/design-system/design-pattern/{pattern}"
+        response = await get_storybook_resource(url=uri_2_resource[uri].url)
+        return GetPromptResult(
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"Softreefのdesign-systemの{pattern} design-patternについて以下の情報を参照して教えてください。"
+                            f"\n\n{response}"
+                        ),
+                    ),
+                )
+            ]
+        )
+    else:
+        raise ValueError(f"Prompt not found: {name}")
 
 
 @app.list_resources()
@@ -123,11 +128,7 @@ async def read_resource(uri: AnyUrl) -> str:
         logger.error(f"URI: {uri} was not defined.")
         raise RuntimeError(f"Not defined URI was given: {uri}")
 
-    try:
-        content = await get_storybook_resource(url=uri_2_resource[uri].url)
-        return content
-    except httpx.HTTPError as e:
-        raise RuntimeError(f"Fetch softreef design-system content error: {str(e)}")
+    return await get_storybook_resource(url=uri_2_resource[uri].url)
 
 
 @app.list_tools()
@@ -266,16 +267,8 @@ async def call_get_softreef_overview_description(
         raise ValueError("Required argument 'category' not found")
 
     uri = f"markdown://softreef/design-system/{arguments.get("category")}"
-    try:
-        response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
-        return [TextContent(type="text", text=response)]
-    except requests.HTTPError as e:
-        logger.error(
-            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("pattern")}' description"
-        )
-        raise RuntimeError(
-            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("pattern")}' description"
-        )
+    response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
+    return [TextContent(type="text", text=response)]
 
 
 async def call_get_available_softreef_component_description_list() -> (
@@ -303,16 +296,8 @@ async def call_get_softreef_component_description(
         raise ValueError("Required argument 'component' not found")
 
     uri = f"markdown://softreef/design-system/component/{arguments.get("component")}"
-    try:
-        response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
-        return [TextContent(type="text", text=response)]
-    except requests.HTTPError as e:
-        logger.error(
-            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("component")}' component description"
-        )
-        raise RuntimeError(
-            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("component")}' component description"
-        )
+    response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
+    return [TextContent(type="text", text=response)]
 
 
 async def call_get_available_softreef_design_pattern_description_list() -> (
@@ -340,16 +325,8 @@ async def call_get_softreef_design_pattern_description(
         raise ValueError("Required argument 'pattern' not found")
 
     uri = f"markdown://softreef/design-system/design-pattern/{arguments.get("pattern")}"
-    try:
-        response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
-        return [TextContent(type="text", text=response)]
-    except requests.HTTPError as e:
-        logger.error(
-            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("pattern")}' design-pattern description"
-        )
-        raise RuntimeError(
-            f"{str(e)} was occurred when client tried to obtain the '{arguments.get("pattern")}' design-pattern description"
-        )
+    response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
+    return [TextContent(type="text", text=response)]
 
 
 @app.call_tool()
