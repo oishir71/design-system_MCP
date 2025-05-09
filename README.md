@@ -72,6 +72,45 @@ VS CodeをMCP Clientとして利用する場合は`settings.json`に上記と同
 ...
 ```
 
+# API
+
+## Resource
+
+- `markdown://softreef/design-system/{category}`
+  - `category`には`overview`, `environment`, `resource`のいずれか
+  - design-systemの基本的な説明
+- `markdown://softreef/design-system/component/{component}`
+  - `component`にはdesign-systemで提供されているcomponent名が入る
+  - design-systemのocmponentの基本的な説明
+- `markdown://softreef/design-system/design-pattern/{pattern}`
+  - `pattern`にはdesign-patternで提供されているpattern名が入る
+  - design-patterの基本的な説明
+
+## Tool
+
+- `get_overview_description`
+  - `markdown://softreef/design-system/{category}`の説明を取得する
+- `get_component_list`
+  - `markdown://softreef/design-system/component/{component}` resourceで取得できる説明の一覧を取得する
+- `ge_component_description`
+  - `markdown://softreef/design-system/component/{component}`の説明を取得する
+- `get_design_pattern_list`
+  - `markdown://softreef/design-system/design-pattern/{pattern}` resourceで取得できる説明の一覧を取得する
+- `get_design_pattern_description`
+  - `markdown://softreef/design-system/design-pattern/{pattern}`の説明を取得する
+
+## Prompt
+
+- `softreef_overview`
+  - `markdown://softreef/design-system/{category}` resourceをpromptに埋め込むことができる。
+  - `category`は必須で与える必要がある
+- `softreef_component`
+  - `markdown://softreef/design-system/component/{component}` resourceをpromptに埋め込むことができる。
+  - `component`は必須で与える必要がある
+- `softreef_design_pattern`
+  - `markdown://softreef/design-system/design-pattern/{pattern}` resourceをpromptに埋め込むことができる。
+  - `pattern`は必須で与える必要がある
+
 # Tips
 
 エラーに遭遇したら`/Users/yourname/Library/Logs/Claude`配下のログファイルを確認する。
