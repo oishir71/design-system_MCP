@@ -135,7 +135,7 @@ async def read_resource(uri: AnyUrl) -> str:
 async def list_tools() -> list[Tool]:
     return [
         Tool(
-            name="get_overview_description",
+            name="get_softreef_overview_description",
             description="Get a description of either overview, environment or resource about Softreef design-system",
             inputSchema={
                 "type": "object",
@@ -150,12 +150,12 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
-            name="get_component_list",
+            name="get_available_softreef_component_description_list",
             description="Get a list of available softreef component",
             inputSchema={"type": "object"},
         ),
         Tool(
-            name="get_component_description",
+            name="get_softreef_component_description",
             description="Get one of the descriptions in a series of descriptions about Softreef design-system component",
             inputSchema={
                 "type": "object",
@@ -217,12 +217,12 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
-            name="get_design_pattern_list",
+            name="get_available_softreef_design_pattern_description_list",
             description="Get a list of available softreef design-pattern descriptions",
             inputSchema={"type": "object"},
         ),
         Tool(
-            name="get_design_pattern_description",
+            name="get_softreef_design_pattern_description",
             description="Get one of the description in a series of descriptions about Softreef design-pattern",
             inputSchema={
                 "type": "object",
