@@ -19,7 +19,8 @@ from mcp.types import (
 )
 
 from storybook_async_fetcher import markdown_format_text
-from storybook_resources import uri_2_resource
+from storybook_resources import uri_2_resource as sb_uri_2_resources
+from design_system_file_path_resources import uri_2_resource as ds_uri_2_resources
 from storybook_prompts import prompts
 
 load_dotenv()
@@ -53,7 +54,7 @@ async def get_prompt(
     if name == "softreef_overview":
         category = arguments.get("category")
         uri = f"markdown://softreef/design-system/{category}"
-        response = await get_storybook_resource(url=uri_2_resource[uri].url)
+        response = await get_storybook_resource(url=sb_uri_2_resources[uri].url)
         return GetPromptResult(
             messages=[
                 PromptMessage(
@@ -71,7 +72,7 @@ async def get_prompt(
     elif name == "softreef_component":
         component = arguments.get("component")
         uri = f"markdown://softreef/design-system/component/{component}"
-        response = await get_storybook_resource(url=uri_2_resource[uri].url)
+        response = await get_storybook_resource(url=sb_uri_2_resources[uri].url)
         return GetPromptResult(
             messages=[
                 PromptMessage(
@@ -89,7 +90,7 @@ async def get_prompt(
     elif name == "softreef_design_pattern":
         pattern = arguments.get("pattern")
         uri = f"markdown://softreef/design-system/design-pattern/{pattern}"
-        response = await get_storybook_resource(url=uri_2_resource[uri].url)
+        response = await get_storybook_resource(url=sb_uri_2_resources[uri].url)
         return GetPromptResult(
             messages=[
                 PromptMessage(
@@ -111,24 +112,37 @@ async def get_prompt(
 @app.list_resources()
 async def list_resources() -> list[Resource]:
     return [
-        Resource(
-            uri=key,
-            name=value.name,
-            description=value.description,
-            mimeType="text/markdown",
-        )
-        for key, value in uri_2_resource.items()
+        *[
+            Resource(
+                uri=key,
+                name=value.name,
+                description=value.description,
+                mimeType="text/markdown",
+            )
+            for key, value in sb_uri_2_resources.items()
+        ],
+        *[
+            Resource(
+                uri=key,
+                name=value.name,
+                description=value.description,
+                mimeType="text/plain",
+            )
+            for key, value in ds_uri_2_resources.items()
+        ],
     ]
 
 
 @app.read_resource()
 async def read_resource(uri: AnyUrl) -> str:
     uri = str(uri)
-    if not uri in uri_2_resource:
+    if uri in sb_uri_2_resources:
+        return await get_storybook_resource(url=sb_uri_2_resources[uri].url)
+    elif uri in ds_uri_2_resources:
+        return await ds_uri_2_resources[uri].path
+    else:
         logger.error(f"URI: {uri} was not defined.")
         raise RuntimeError(f"Not defined URI was given: {uri}")
-
-    return await get_storybook_resource(url=uri_2_resource[uri].url)
 
 
 @app.list_tools()
@@ -242,6 +256,20 @@ async def list_tools() -> list[Tool]:
                 "required": ["pattern"],
             },
         ),
+        Tool(
+            name="get_softreef_component_file_path",
+            description="Get file path to Softreef design-system component",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "component": {
+                        "type": "string",
+                        "description": "Name of component",
+                    },
+                },
+                "required": ["component"],
+            },
+        ),
     ]
 
 
@@ -267,7 +295,7 @@ async def call_get_softreef_overview_description(
         raise ValueError("Required argument 'category' not found")
 
     uri = f"markdown://softreef/design-system/{arguments.get("category")}"
-    response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
+    response = await get_storybook_resource(url=sb_uri_2_resources.get(uri).url)
     return [TextContent(type="text", text=response)]
 
 
@@ -296,7 +324,7 @@ async def call_get_softreef_component_description(
         raise ValueError("Required argument 'component' not found")
 
     uri = f"markdown://softreef/design-system/component/{arguments.get("component")}"
-    response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
+    response = await get_storybook_resource(url=sb_uri_2_resources.get(uri).url)
     return [TextContent(type="text", text=response)]
 
 
@@ -325,7 +353,18 @@ async def call_get_softreef_design_pattern_description(
         raise ValueError("Required argument 'pattern' not found")
 
     uri = f"markdown://softreef/design-system/design-pattern/{arguments.get("pattern")}"
-    response = await get_storybook_resource(url=uri_2_resource.get(uri).url)
+    response = await get_storybook_resource(url=sb_uri_2_resources.get(uri).url)
+    return [TextContent(type="text", text=response)]
+
+
+async def call_get_softreef_component_file_path(
+    arguments: Any,
+) -> Sequence[TextContent]:
+    if not isinstance(arguments, dict) or not "component" in arguments:
+        raise ValueError("Required argument 'component' not found")
+
+    uri = f"filepath://softreef/design-system/component/{arguments.get("component")}"
+    response = ds_uri_2_resources.get(uri).path
     return [TextContent(type="text", text=response)]
 
 
@@ -345,6 +384,8 @@ async def call_tool(
         return await call_get_available_softreef_design_pattern_description_list()
     elif name == "get_softreef_design_pattern_description":
         return await call_get_softreef_design_pattern_description(arguments)
+    elif name == "get_softreef_component_file_path":
+        return await call_get_softreef_component_file_path(arguments)
     else:
         raise ValueError(f"Unknown tool: {name}")
 
