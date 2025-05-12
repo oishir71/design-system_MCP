@@ -1,5 +1,6 @@
 import logging
 import asyncio
+from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 import html2text
 
@@ -7,7 +8,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("storybook_async_fetcher")
 
 
-async def markdown_format_text(url: str, locator_id: str = "storybook-docs") -> str:
+async def markdown_format_text(
+    url: str, locator_id: str = "storybook-docs", anchor_class_name: str = "sb-anchor"
+) -> str:
     markdown = ""
     async with async_playwright() as p:
         try:
@@ -26,8 +29,13 @@ async def markdown_format_text(url: str, locator_id: str = "storybook-docs") -> 
             ]
 
             for iframe in storybook_iframes:
-                storybook_docs_div = await iframe.locator(f"#{locator_id}").inner_html()
-                markdown += html2text.html2text(storybook_docs_div)
+                html = await iframe.locator(f"#{locator_id}").inner_html()
+                soup = BeautifulSoup(html, "html.parser")
+
+                for el in soup.select(f".{anchor_class_name}"):
+                    el.decompose()
+
+                markdown += html2text.html2text(str(soup))
         except Exception as e:
             logger.error(f'Error "{str(e)}" was occurred during fetching text')
         finally:
@@ -39,11 +47,11 @@ async def markdown_format_text(url: str, locator_id: str = "storybook-docs") -> 
 if __name__ == "__main__":
     from storybook_resources import uri_2_resource
 
+    component = "Notification"
     asyncio.run(
         markdown_format_text(
             url=uri_2_resource[
-                "markdown://softreef/design-system/component/Slider"
-            ].url,
-            save_image=True,
+                f"markdown://softreef/design-system/component/{component}"
+            ].url
         )
     )
