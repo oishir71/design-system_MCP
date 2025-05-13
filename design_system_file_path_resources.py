@@ -1,7 +1,9 @@
 import os
+from pathlib import Path
 import logging
 from dataclasses import dataclass
 from dotenv import load_dotenv
+from typing import Literal
 
 load_dotenv()
 
@@ -20,120 +22,25 @@ class Resource:
     description: str
 
 
-uri_2_resource: dict[str, Resource] = {
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/{component}/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイルパス",
+def list_tsx_files(directory: str) -> list[Path]:
+    return [
+        path
+        for path in Path(directory).rglob("*.tsx")
+        if not path.name.endswith(".stories.tsx") and not path.stem in ["index"]
+    ]
+
+
+def convert_path_to_resource(
+    path: Path, type: Literal["component", "design-pattern"]
+) -> dict[str, Resource]:
+    component = path.stem
+    return {
+        f"filepath://softreef/design-system/{type}/{component}": Resource(
+            path=str(path),
+            name=f"Path to {component} {type} file",
+            description=f"{component} {type}の実装ファイルパス",
         )
-        for component in [
-            "Accordion",
-            "Breadcrumbs",
-            "Button",
-            "ButtonGroup",
-            "Card",
-            "CardForGalleryView",
-            "CardList",
-            "Chip",
-            "DateTimePicker",
-            "Divider",
-            "KeyValue",
-            "List",
-            "Loader",
-            "Logo",
-            "Notification",
-            "Slider",
-            "Status",
-            "Stepper",
-            "SwitchTableAndCardView",
-            "Tab",
-            "Table",
-            "ToggleButton",
-            "TOggleSwitch",
-            "Tooltip",
-        ]
-    },
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/form/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイル",
-        )
-        for component in [
-            "Autocomplete",
-            "AllSelectCheckBox",
-            "CheckBox",
-            "RadioButton",
-            "SelectBox",
-            "TextBox",
-        ]
-    },
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/Chart/{component}/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイル",
-        )
-        for component in ["BarChart"]
-    },
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/dialog/{component}/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイル",
-        )
-        for component in ["ActionDialog", "StepperDialog"]
-    },
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/DropdownMenu/{component}/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイル",
-        )
-        for component in ["DropdownMenuButton", "EllipsisDropdownMenuButton"]
-    },
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/dropzone/{component}/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイル",
-        )
-        for component in ["DropZone", "ImageDropZone"]
-    },
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/layout/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイル",
-        )
-        for component in ["GridLayout"]
-    },
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/paging/{component}/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイル",
-        )
-        for component in ["FullPaging", "SimplePaging"]
-    },
-    **{
-        f"filepath://softreef/design-system/component/{component}": Resource(
-            path=f"{SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH}/Text/{component}/{component}.tsx",
-            name=f"Path to {component} component file",
-            description=f"{component}コンポーネントの実装ファイル",
-        )
-        for component in [
-            "TitleH1Text",
-            "TitleH2Text",
-            "CaptionText",
-            "NormalText",
-            "SmallText",
-            "NotesText",
-            "LinkText",
-        ]
-    },
-}
+    }
 
 
 def check_file_exists(path) -> bool:
@@ -144,10 +51,21 @@ def check_file_exists(path) -> bool:
         False
 
 
+uri_2_resource: dict[str, Resource] = {}
+for directory in ["components", "design-patterns"]:
+    for path in list_tsx_files(
+        directory=SOFTREEF_DESIGN_SYSTEM_FILE_BASE_PATH + directory
+    ):
+        uri_2_resource.update(convert_path_to_resource(path, directory[0:-1]))
+
+
 def main():
     for uri in uri_2_resource:
         _ = check_file_exists(path=uri_2_resource[uri].path)
 
 
 if __name__ == "__main__":
+    import pprint
+
     main()
+    pprint.pprint(uri_2_resource)
