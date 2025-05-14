@@ -1,13 +1,21 @@
 import os
 import logging
-import asyncio
-import httpx
+import urllib3
+from urllib3.exceptions import (
+    HTTPError,
+    MaxRetryError,
+    NewConnectionError,
+    ConnectTimeoutError,
+    ReadTimeoutError,
+    SSLError,
+    ProxyError,
+)
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger("softreef_resources")
 
 SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL = os.getenv(
@@ -307,6 +315,34 @@ component_overviews = [
     ),
 ]
 
+basic_elements = [
+    (
+        "Illustrations",
+        "イラストレーション",
+        "文字ではなくイラストレーションを使用して直感的に情報を伝えたい場合に使用する要素に関する説明",
+    ),
+    (
+        "GridSystem",
+        "グリッドシステム",
+        "コンテンツのレイアウト時に一貫性を持たせるために使用コンポーネントに関するルールや適応例",
+    ),
+    (
+        "ShadowAndLayout",
+        "シャドウと高度",
+        "コンテンツに与える影(shadow)や高度(zIndex)の使用ルールに関する説明",
+    ),
+    ("Writing", "ライティング", "SoftReefで使用する言語に関しての指針説明"),
+    (
+        "ResponsiveDesign",
+        "レスポンシブデザイン",
+        "デバイスサイズに応じた適切な画面レイアウトを提供するためのルールや適応例の説明",
+    ),
+    ("Opacity", "不透明度", "要素の不透明度に関するルールの説明"),
+    ("Margin", "余白", "マージンやパディングなどの余白パターンの基本とルール説明"),
+    ("Color", "色", "SoftReefで使用可能な色に関するルール説明"),
+    ("Radius", "角丸", "要素の境界の外側の角を丸める際に準拠するべきルール説明"),
+]
+
 design_patterns = [
     (
         "ContentAreaLayout",
@@ -422,6 +458,14 @@ uri_2_resource: dict[str, Resource] = {
         for (en, ja, description) in toggle_components
     },
     **{
+        f"markdown://softreef/design-system/basic-elements/{en}": Resource(
+            url=f"{SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL}-基本要素-{ja}--docs",
+            name=f"Softreef {en} basic-element",
+            description=description,
+        )
+        for (en, ja, description) in basic_elements
+    },
+    **{
         f"markdown://softreef/design-system/design-pattern/{en}": Resource(
             url=f"{SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL}-デザインパターン-{ja}--docs",
             name=f"Softreef {en} design-pattern",
@@ -432,19 +476,28 @@ uri_2_resource: dict[str, Resource] = {
 }
 
 
-async def check_reachable_url(url: str) -> bool:
-    try:
-        async with httpx.AsyncClient() as client:
-            _ = await client.get(url)
-            return True
-    except Exception as e:
-        logger.error(f'"{str(e)}" was occurred when trying to access "{url}"')
-        return False
-
-
-async def main():
+def main():
+    http = urllib3.PoolManager()
     for uri in uri_2_resource:
-        _ = await check_reachable_url(url=uri_2_resource[uri].url)
+        url = uri_2_resource[uri].url
+        try:
+            _ = http.request("HEAD", url, timeout=5.0, retries=False)
+        except ConnectTimeoutError as e:
+            logger.error(f"ConnectTimeoutError（接続タイムアウト）: {e}\n{url}")
+        except ReadTimeoutError as e:
+            logger.error(f"ReadTimeoutError（読み込みタイムアウト）: {e}\n{url}")
+        except SSLError as e:
+            logger.error(f"SSLError（SSLエラー）: {e}\n{url}")
+        except NewConnectionError as e:
+            logger.error(f"NewConnectionError（新規接続失敗、DNSエラー等）: {e}\n{url}")
+        except ProxyError as e:
+            logger.error(f"ProxyError（プロキシ関連のエラー）: {e}\n{url}")
+        except MaxRetryError as e:
+            logger.error(f"MaxRetryError（最大リトライ回数に到達）: {e}\n{url}")
+        except HTTPError as e:
+            logger.error(f"HTTPError（一般的なHTTPエラー）: {e}\n{url}")
+        except Exception as e:
+            logger.error(f"Error（その他のエラー）: {e}\n{url}")
 
 
 def utf8_decode(url: str) -> str:
@@ -454,4 +507,4 @@ def utf8_decode(url: str) -> str:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
