@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("softreef_resources")
 
 SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL = os.getenv(
@@ -458,7 +458,7 @@ uri_2_resource: dict[str, Resource] = {
         for (en, ja, description) in toggle_components
     },
     **{
-        f"markdown://softreef/design-system/basic-elements/{en}": Resource(
+        f"markdown://softreef/design-system/basic-element/{en}": Resource(
             url=f"{SOFTREEF_DESIGN_SYSTEM_STORYBOOK_BASE_URL}-基本要素-{ja}--docs",
             name=f"Softreef {en} basic-element",
             description=description,
@@ -480,6 +480,7 @@ def main():
     http = urllib3.PoolManager()
     for uri in uri_2_resource:
         url = uri_2_resource[uri].url
+        logger.info(f"Check if the following URL is reachable. URL: {url}")
         try:
             _ = http.request("HEAD", url, timeout=5.0, retries=False)
         except ConnectTimeoutError as e:

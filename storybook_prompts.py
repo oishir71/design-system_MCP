@@ -2,34 +2,41 @@ from mcp.types import Prompt, PromptArgument
 
 prompts: list[Prompt] = [
     Prompt(
-        name="softreef_overview",
-        description="Generate a description of design-system overview",
+        name="softreef-design-system-overview",
+        description="Softreefの概要に関する情報を取得するためのプロンプト",
         arguments=[
             PromptArgument(
                 name="category",
-                description="type of major category",
+                description="概要の種類",
                 required=True,
             )
         ],
     ),
     Prompt(
-        name="softreef_component",
-        description="Generate a description of design-system component",
+        name="softreef-design-system-component",
+        description="Softreefのコンポーネントに関する情報を取得するためのプロンプト",
         arguments=[
             PromptArgument(
                 name="component",
-                description="type of component",
+                description="コンポーネントの種類",
                 required=True,
             )
         ],
     ),
     Prompt(
-        name="softreef_design_pattern",
-        description="Generate a description of design-pattern",
+        name="softreef-design-system-basic-element",
+        description="Softreefの基本要素に関する情報を取得するためのプロンプト",
+        arguments=[
+            PromptArgument(name="element", description="基本要素の種類", required=True)
+        ],
+    ),
+    Prompt(
+        name="softreef-design-system-design-pattern",
+        description="Softreefのデザインパターンに関する情報を取得するためのプロンプト",
         arguments=[
             PromptArgument(
                 name="pattern",
-                description="type of design-pattern",
+                description="デザインパターンの種類",
                 required=True,
             )
         ],
