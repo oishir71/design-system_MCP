@@ -46,8 +46,18 @@ def event_print(str: str):
     logger.info(Color.GRAY + str + Color.END)
 
 
+@dataclass
+class StdioServerParameterArgs:
+    command: str
+    args: list[str]
+    env: dict[str, str] | None = None
+
+
 class MCPClient:
-    def __init__(self):
+    def __init__(self, session_name: str, parameters: StdioServerParameterArgs):
+        self.session_name = session_name
+        self.parameters = parameters
+
         self.session_dir = Path(__file__).parent / "sessions"
         self.session_dir.mkdir(parents=True, exist_ok=True)
 
@@ -57,12 +67,12 @@ class MCPClient:
             api_key=OPENAI_API_KEY,
         )
 
-    def _save_session(self, session_id: UUID, messages: list[dict[str, Any]]):
-        with (self.session_dir / f"{session_id}.json").open("w") as f:
+    def _save_session(self, session_name: str, messages: list[dict[str, Any]]):
+        with (self.session_dir / f"{session_name}.json").open("w") as f:
             json.dump(messages, f, ensure_ascii=False, indent=4)
 
-    def _read_session(self, session_id: UUID) -> list[dict[str, Any]]:
-        session_file = self.session_dir / f"{session_id}.json"
+    def _read_session(self, session_name: str) -> list[dict[str, Any]]:
+        session_file = self.session_dir / f"{session_name}.json"
         if not session_file.exists():
             return []
         with session_file.open("r") as f:
@@ -103,10 +113,10 @@ class MCPClient:
         return [self._encode_tool_content(c) for c in result.content]
 
     async def execute(
-        self, message: dict[str, Any], session_id: UUID
+        self, message: dict[str, Any], session_name: str
     ) -> AsyncGenerator:
         event_print("taskを開始します")
-        messages = self._read_session(session_id)
+        messages = self._read_session(session_name)
         messages.append(
             {
                 "role": message.get("role", "user"),
@@ -115,22 +125,9 @@ class MCPClient:
         )
 
         server_params = StdioServerParameters(
-            command="/Users/oishir71/.local/bin/uv",
-            args=[
-                "--directory",
-                "/Users/oishir71/Desktop/SoftBank/R_D/MCP/design-system_MCP",
-                "run",
-                "storybook_server.py",
-            ],
-            env={
-                "https_proxy": "http://10.35.227.1:8080",
-                "http_proxy": "http://10.35.227.1:8080",
-                "all_proxy": "http://10.35.227.1:8080",
-                "no_proxy": "127.0.*,192.168.*,localhost,10.144.42.153",
-                "ALL_PROXY": "http://10.35.227.1:8080",
-                "HTTPS_PROXY": "http://10.35.227.1:8080",
-                "HTTP_PROXY": "http://10.35.227.1:8080",
-            },
+            command=self.parameters.command,
+            args=self.parameters.args,
+            env=self.parameters.env,
         )
         async with stdio_client(server_params) as (read_stream, write_stream):
             async with ClientSession(read_stream, write_stream) as session:
@@ -158,7 +155,7 @@ class MCPClient:
                     messages.append(
                         response_message.model_dump(mode="json", exclude_defaults=True)
                     )
-                    self._save_session(session_id=session_id, messages=messages)
+                    self._save_session(session_name=session_name, messages=messages)
 
                     if response_message.tool_calls:
                         for tool_call in response_message.tool_calls:
@@ -179,7 +176,9 @@ class MCPClient:
                                     "tool_call_id": tool_call.id,
                                 }
                             )
-                            self._save_session(session_id=session_id, messages=messages)
+                            self._save_session(
+                                session_name=session_name, messages=messages
+                            )
                             event_print(f"{tool_name = }の実行が完了しました")
                     else:
                         break
@@ -195,7 +194,7 @@ class MCPClient:
                     break
 
                 message = {"role": "user", "content": query}
-                await self.execute(message=message, session_id="1")
+                await self.execute(message=message, session_name=self.session_name)
             except Exception as e:
                 event_print(f"\nエラーが発生しました: {str(e)}")
 
@@ -206,4 +205,24 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    session_name = "softreef"
+    parameters = StdioServerParameterArgs(
+        command="/Users/oishir71/.local/bin/uv",
+        args=[
+            "--directory",
+            "/Users/oishir71/Desktop/SoftBank/R_D/MCP/design-system_MCP/server",
+            "run",
+            "storybook_server.py",
+        ],
+        env={
+            "https_proxy": "http://10.35.227.1:8080",
+            "http_proxy": "http://10.35.227.1:8080",
+            "all_proxy": "http://10.35.227.1:8080",
+            "no_proxy": "127.0.*,192.168.*,localhost,10.144.42.153",
+            "ALL_PROXY": "http://10.35.227.1:8080",
+            "HTTPS_PROXY": "http://10.35.227.1:8080",
+            "HTTP_PROXY": "http://10.35.227.1:8080",
+        },
+    )
+
+    asyncio.run(main(session_name=session_name, parameters=parameters))
