@@ -1,12 +1,11 @@
 import os
+import sys
 import json
 import asyncio
-import logging
 from dataclasses import dataclass
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
-from uuid import UUID
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -15,7 +14,8 @@ from mcp.types import EmbeddedResource, ImageContent, TextContent
 from openai import AsyncAzureOpenAI
 from dotenv import load_dotenv
 
-from color import Color
+sys.path.append(str(Path(__file__).parent.parent / "utils"))
+from color_print import user_input, llm_print, event_print
 
 load_dotenv()
 
@@ -23,27 +23,6 @@ OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")
 OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
 OPENAI_DEPLOYMENT_ID = os.getenv("OPENAI_DEPLOYMENT_ID")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("stdio_client")
-
-
-def user_input(str: str):
-    try:
-        query = input(Color.GREEN + str).rstrip()
-        print(Color.END)
-        return query
-    except KeyboardInterrupt:
-        logger.error(Color.RED + "\n入力が中断されました" + Color.END)
-        exit(1)
-
-
-def llm_print(str: str):
-    logger.info(Color.BLUE + str + Color.END)
-
-
-def event_print(str: str):
-    logger.info(Color.GRAY + str + Color.END)
 
 
 @dataclass
