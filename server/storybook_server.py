@@ -199,7 +199,7 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="get_available_softreef_component_description_list",
             description="Softreefのdesign-systemが提供しているコンポーネントの一覧を取得する",
-            inputSchema={"type": "object"},
+            inputSchema={"type": "object", "properties": {}},
         ),
         Tool(
             name="get_softreef_component_description",
@@ -229,7 +229,7 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="get_available_softreef_basic_element_description_list",
             description="Softreefのdesign-systemが提供する基本要素の一覧を取得する",
-            inputSchema={"type": "object"},
+            inputSchema={"type": "object", "properties": {}},
         ),
         Tool(
             name="get_softreef_basic_element_description",
@@ -249,7 +249,7 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="get_available_softreef_design_pattern_description_list",
             description="Softreefのdesign-systemが提供するデザインパターンの一覧を取得する",
-            inputSchema={"type": "object"},
+            inputSchema={"type": "object", "properties": {}},
         ),
         Tool(
             name="get_softreef_design_pattern_description",
