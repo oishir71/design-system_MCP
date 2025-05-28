@@ -9,22 +9,18 @@ from mcp.types import EmbeddedResource, ImageContent, TextContent
 
 
 class MCPClient:
-    def __init__(self, session_parameters: dict[str, Any]):
-        self.session_parameters = session_parameters
+    def __init__(self, server_parameters: dict[str, Any]):
+        self.server_parameters = server_parameters
         self.session: Optional[ClientSession] = None
-
-        self.session_dir = Path(__file__).parent / "sessions"
-        self.session_dir.mkdir(parents=True, exist_ok=True)
 
         self.exit_stack = AsyncExitStack()
 
-    async def connect_to_server(self):
+    async def __aenter__(self):
         server_params = StdioServerParameters(
-            command=self.session_parameters.get("command"),
-            args=self.session_parameters.get("args"),
-            env=self.session_parameters.get("env", None),
+            command=self.server_parameters.get("command"),
+            args=self.server_parameters.get("args"),
+            env=self.server_parameters.get("env", None),
         )
-
         stdio_transport = await self.exit_stack.enter_async_context(
             stdio_client(server_params)
         )
@@ -32,11 +28,15 @@ class MCPClient:
         self.session = await self.exit_stack.enter_async_context(
             ClientSession(self.stdio, self.write)
         )
-
         await self.session.initialize()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.exit_stack.aclose()
 
     async def _get_tools(self):
         list_tools_response = await self.session.list_tools()
+        # OpenAI tool format
         tools = [
             {
                 "type": "function",
@@ -64,12 +64,17 @@ class MCPClient:
         result = await self.session.call_tool(name=name, arguments=arguments)
         return [self._encode_tool_content(c) for c in result.content]
 
-    async def cleanup(self):
-        await self.exit_stack.aclose()
+
+async def main(server_parameters: dict[str, Any]):
+    async with MCPClient(server_parameters=server_parameters) as client:
+        await client.execute_tool(
+            name="get_softreef_component_file_path",
+            arguments={"component": "TextBox"},
+        )
 
 
-async def main():
-    session_parameters = {
+if __name__ == "__main__":
+    server_parameters = {
         "command": "/Users/oishir71/.local/bin/uv",
         "args": [
             "--directory",
@@ -88,10 +93,4 @@ async def main():
         },
     }
 
-    client = MCPClient(session_parameters=session_parameters)
-    await client.connect_to_server()
-    await client.cleanup()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(server_parameters=server_parameters))

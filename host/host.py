@@ -4,6 +4,7 @@ import json
 import asyncio
 from pathlib import Path
 from typing import Any
+from contextlib import AsyncExitStack
 
 from openai import AsyncAzureOpenAI
 from dotenv import load_dotenv
@@ -28,6 +29,8 @@ class MCPHost:
         self.clients = {}
         self.tools = {}
 
+        self.client_context_stack = AsyncExitStack()
+
         self.session_name = "host"
         self.session_dir = Path(__file__).parent / "sessions"
         self.session_dir.mkdir(parents=True, exist_ok=True)
@@ -37,6 +40,21 @@ class MCPHost:
             azure_deployment=OPENAI_DEPLOYMENT_ID,
             api_key=OPENAI_API_KEY,
         )
+
+    async def __aenter__(self):
+        for server_name, server_parameters in self.servers.items():
+            client = await self.client_context_stack.enter_async_context(
+                MCPClient(server_parameters)
+            )
+            tools = await client._get_tools()
+
+            self.clients[server_name] = client
+            self.tools[server_name] = tools
+
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.client_context_stack.aclose()
 
     def _save_session(self, messages: list[dict[str, Any]]):
         with (self.session_dir / f"{self.session_name}.json").open("w") as f:
@@ -48,15 +66,6 @@ class MCPHost:
             return []
         with session_file.open("r") as f:
             return json.load(f)
-
-    async def setup_clients(self):
-        for server_name, server_parameters in servers.items():
-            client = MCPClient(session_parameters=server_parameters)
-            await client.connect_to_server()
-            tools = await client._get_tools()
-
-            self.clients[server_name] = client
-            self.tools[server_name] = tools
 
     async def execute(self, message: dict[str, Any]):
         event_print("Taskを開始します")
@@ -116,7 +125,10 @@ class MCPHost:
                 break
 
     async def chat_loop(self):
-        event_print("\n質問を入力するか'quit'を入力して終了してください")
+        event_print("\n以下のMCP Serverの読み込みが完了しました")
+        for server_name in self.clients.keys():
+            event_print(f"  - {server_name}")
+        event_print("質問を入力するか'quit'を入力して終了してください")
 
         while True:
             try:
@@ -129,56 +141,13 @@ class MCPHost:
             except Exception as e:
                 error_print(f"\nエラーが発生しました: {str(e)}")
 
-    async def cleanup(self):
-        for client in self.clients.values():
-            await client.cleanup()
 
-
-servers = {
-    "softreef": {
-        "command": "/Users/oishir71/.local/bin/uv",
-        "args": [
-            "--directory",
-            "/Users/oishir71/Desktop/SoftBank/R_D/MCP/design-system_MCP/server",
-            "run",
-            "storybook_server.py",
-        ],
-        "env": {
-            "https_proxy": "http://10.35.227.1:8080",
-            "http_proxy": "http://10.35.227.1:8080",
-            "all_proxy": "http://10.35.227.1:8080",
-            "no_proxy": "127.0.*,192.168.*,localhost,10.144.42.153",
-            "ALL_PROXY": "http://10.35.227.1:8080",
-            "HTTPS_PROXY": "http://10.35.227.1:8080",
-            "HTTP_PROXY": "http://10.35.227.1:8080",
-        },
-    },
-    "file-system": {
-        "command": "npx",
-        "args": [
-            "-y",
-            "@modelcontextprotocol/server-filesystem",
-            "/Users/oishir71/Desktop/SoftBank/Git/softreef/frontend/features/design-system/src/components",
-        ],
-        "env": {
-            "https_proxy": "http://10.35.227.1:8080",
-            "http_proxy": "http://10.35.227.1:8080",
-            "all_proxy": "http://10.35.227.1:8080",
-            "no_proxy": "127.0.*,192.168.*,localhost,10.144.42.153",
-            "ALL_PROXY": "http://10.35.227.1:8080",
-            "HTTPS_PROXY": "http://10.35.227.1:8080",
-            "HTTP_PROXY": "http://10.35.227.1:8080",
-        },
-    },
-}
-
-
-async def main():
-    host = MCPHost(servers=servers)
-    await host.setup_clients()
-    await host.chat_loop()
-    await host.cleanup()
+async def main(servers: dict[str, Any]):
+    async with MCPHost(servers=servers) as host:
+        await host.chat_loop()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    with open("./config.json") as f:
+        servers = json.load(f)
+    asyncio.run(main(servers=servers))
