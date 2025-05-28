@@ -13,7 +13,7 @@ sys.path.append(str(Path(__file__).parent.parent / "utils"))
 from color_print import user_input, llm_print, event_print, error_print
 
 sys.path.append(str(Path(__file__).parent.parent / "client"))
-from stdio_client_light import MCPClient
+from client import MCPClient
 
 load_dotenv()
 
