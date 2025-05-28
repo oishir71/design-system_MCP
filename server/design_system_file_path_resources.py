@@ -48,7 +48,7 @@ def check_file_exists(path) -> bool:
         return True
     else:
         logger.warning(f"{path} was not found")
-        False
+        return False
 
 
 uri_2_resource: dict[str, Resource] = {}
